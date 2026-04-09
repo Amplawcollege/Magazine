@@ -1,17 +1,17 @@
-// ✅ PDF FILE (LOCAL)
+// ✅ PDF FILE
 const url = "magazine.pdf";
 
-// ✅ PDF WORKER FIX
+// ✅ PDF WORKER
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
 
 // ✅ RESPONSIVE SCALE
-let scale = window.innerWidth < 768 ? 0.8 : 1.2;
+let scale = window.innerWidth < 768 ? 0.9 : 1.2;
 
 let pdfDoc = null;
 let flipInitialized = false;
 
-// ✅ LOAD PDF
+// ✅ LOAD PDF (FIRST NORMAL VIEW)
 pdfjsLib.getDocument(url).promise.then(async function(pdf) {
     pdfDoc = pdf;
 
@@ -38,25 +38,25 @@ pdfjsLib.getDocument(url).promise.then(async function(pdf) {
             canvasContext: context,
             viewport: viewport
         }).promise;
-
-        // ✅ LAST PAGE → INIT FLIPBOOK
-        if (i === pdf.numPages) {
-            setTimeout(() => {
-                initFlipbook();
-                hideLoader();
-            }, 500);
-        }
     }
+
+    // ✅ पहले normal दिखे → फिर flip enable
+    setTimeout(() => {
+        initFlipbook();
+    }, 1200);
 });
 
-// ✅ INIT FLIPBOOK
+// ✅ INIT FLIPBOOK (SINGLE PAGE FOR MOBILE)
 function initFlipbook() {
     if (flipInitialized) return;
 
+    let isMobile = window.innerWidth < 768;
+
     $('#flipbook').turn({
-        width: window.innerWidth < 768 ? 350 : 1000,
-        height: window.innerWidth < 768 ? 500 : 650,
+        width: isMobile ? 350 : 1000,
+        height: isMobile ? 500 : 650,
         autoCenter: true,
+        display: isMobile ? 'single' : 'double', // 🔥 MAIN FIX
         gradients: true,
         elevation: 50,
         when: {
@@ -79,7 +79,7 @@ function prevPage() {
     $('#flipbook').turn('previous');
 }
 
-// ✅ SOUND EFFECT
+// ✅ SOUND
 function playFlipSound() {
     let sound = document.getElementById("flipSound");
     if (!sound) return;
@@ -100,7 +100,7 @@ function zoomOut() {
     reloadViewer();
 }
 
-// ✅ RELOAD PDF
+// ✅ RELOAD VIEWER
 function reloadViewer() {
     flipInitialized = false;
     document.getElementById("flipbook").innerHTML = "";
@@ -128,13 +128,11 @@ function reloadViewer() {
                 canvasContext: context,
                 viewport: viewport
             }).promise;
-
-            if (i === pdf.numPages) {
-                setTimeout(() => {
-                    initFlipbook();
-                }, 500);
-            }
         }
+
+        setTimeout(() => {
+            initFlipbook();
+        }, 800);
     });
 }
 
@@ -154,26 +152,6 @@ document.getElementById("flipbook").addEventListener("touchstart", e => {
 document.getElementById("flipbook").addEventListener("touchend", e => {
     let endX = e.changedTouches[0].clientX;
 
-    if (startX - endX > 50) nextPage();
-    if (endX - startX > 50) prevPage();
+    if (startX - endX > 40) nextPage();
+    if (endX - startX > 40) prevPage();
 });
-
-// ✅ LANDSCAPE MODE CHECK
-function checkOrientation() {
-    if (window.innerHeight > window.innerWidth) {
-        document.getElementById("rotateMsg").style.display = "flex";
-        document.getElementById("flipbook").style.display = "none";
-    } else {
-        document.getElementById("rotateMsg").style.display = "none";
-        document.getElementById("flipbook").style.display = "block";
-    }
-}
-
-window.addEventListener("load", checkOrientation);
-window.addEventListener("resize", checkOrientation);
-
-// ✅ LOADER HIDE
-function hideLoader() {
-    let loader = document.getElementById("loader");
-    if (loader) loader.style.display = "none";
-}
