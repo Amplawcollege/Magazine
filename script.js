@@ -1,157 +1,68 @@
-// ✅ PDF FILE
-const url = "magazine.pdf";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JURIS E-Magazine — AMPLC</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 
-// ✅ PDF WORKER
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
+  <!-- jQuery FIRST -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <!-- Turn.js (pinned version) -->
+  <script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
+</head>
+<body>
 
-// ✅ RESPONSIVE SCALE
-let scale = window.innerWidth < 768 ? 0.9 : 1.2;
+  <header>
+    <div class="logo">
+      <span class="logo-amp">AMPLC</span>
+      <span class="logo-sep">|</span>
+      <span class="logo-juris">JURIS</span>
+    </div>
+    <p class="tagline">Legal Magazine &mdash; Vol. 1</p>
+  </header>
 
-let pdfDoc = null;
-let flipInitialized = false;
+  <div class="controls">
+    <button onclick="prevPage()" aria-label="Previous page">&#8592; Prev</button>
+    <span id="page-num" class="page-indicator">Page 1</span>
+    <button onclick="nextPage()" aria-label="Next page">Next &#8594;</button>
+    <span class="divider"></span>
+    <button onclick="zoomOut()" aria-label="Zoom out">&#8722; Zoom</button>
+    <button onclick="zoomIn()" aria-label="Zoom in">&#43; Zoom</button>
+    <button onclick="goFullscreen()" aria-label="Fullscreen">&#9974; Full</button>
+    <a id="downloadBtn" href="magazine.pdf" download="JURIS-Vol1.pdf" aria-label="Download PDF">&#8595; Download</a>
+  </div>
 
-// ✅ LOAD PDF (FIRST NORMAL VIEW)
-pdfjsLib.getDocument(url).promise.then(async function(pdf) {
-    pdfDoc = pdf;
+  <!-- Loading state -->
+  <div id="loadingMsg">
+    <div class="spinner"></div>
+    <p>Loading magazine&hellip;</p>
+  </div>
 
-    const container = document.getElementById("flipbook");
-    container.innerHTML = "";
+  <!-- Error state -->
+  <div id="errorMsg" style="display:none;">
+    <p>&#9888; Could not load the magazine. Please check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-        let page = await pdf.getPage(i);
-        let viewport = page.getViewport({ scale: scale });
+  <!-- Rotate message (portrait mobile) -->
+  <div id="rotateMsg" aria-live="polite">
+    <div class="rotate-inner">
+      <div class="rotate-icon">&#8635;</div>
+      <p>Rotate to landscape for the best experience</p>
+    </div>
+  </div>
 
-        let div = document.createElement("div");
-        div.className = "page";
+  <main>
+    <div id="flipbook"></div>
+  </main>
 
-        let canvas = document.createElement("canvas");
-        let context = canvas.getContext("2d");
+  <audio id="flipSound" src="flip.mp3" preload="auto"></audio>
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        div.appendChild(canvas);
-        container.appendChild(div);
-
-        await page.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-    }
-
-    // ✅ पहले normal दिखे → फिर flip enable
-    setTimeout(() => {
-        initFlipbook();
-    }, 1200);
-});
-
-// ✅ INIT FLIPBOOK (SINGLE PAGE FOR MOBILE)
-function initFlipbook() {
-    if (flipInitialized) return;
-
-    let isMobile = window.innerWidth < 768;
-
-    $('#flipbook').turn({
-        width: isMobile ? 350 : 1000,
-        height: isMobile ? 500 : 650,
-        autoCenter: true,
-        display: isMobile ? 'single' : 'double', // 🔥 MAIN FIX
-        gradients: true,
-        elevation: 50,
-        when: {
-            turning: function(e, page) {
-                document.getElementById("page-num").innerText = "Page " + page;
-                playFlipSound();
-            }
-        }
-    });
-
-    flipInitialized = true;
-}
-
-// ✅ NEXT / PREV
-function nextPage() {
-    $('#flipbook').turn('next');
-}
-
-function prevPage() {
-    $('#flipbook').turn('previous');
-}
-
-// ✅ SOUND
-function playFlipSound() {
-    let sound = document.getElementById("flipSound");
-    if (!sound) return;
-
-    sound.currentTime = 0;
-    sound.volume = 0.5;
-    sound.play().catch(() => {});
-}
-
-// ✅ ZOOM
-function zoomIn() {
-    scale += 0.2;
-    reloadViewer();
-}
-
-function zoomOut() {
-    scale = Math.max(0.6, scale - 0.2);
-    reloadViewer();
-}
-
-// ✅ RELOAD VIEWER
-function reloadViewer() {
-    flipInitialized = false;
-    document.getElementById("flipbook").innerHTML = "";
-
-    pdfjsLib.getDocument(url).promise.then(async function(pdf) {
-        pdfDoc = pdf;
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-            let page = await pdf.getPage(i);
-            let viewport = page.getViewport({ scale: scale });
-
-            let div = document.createElement("div");
-            div.className = "page";
-
-            let canvas = document.createElement("canvas");
-            let context = canvas.getContext("2d");
-
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            div.appendChild(canvas);
-            document.getElementById("flipbook").appendChild(div);
-
-            await page.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise;
-        }
-
-        setTimeout(() => {
-            initFlipbook();
-        }, 800);
-    });
-}
-
-// ✅ FULLSCREEN
-function goFullscreen() {
-    let elem = document.getElementById("flipbook");
-    if (elem.requestFullscreen) elem.requestFullscreen();
-}
-
-// ✅ MOBILE SWIPE
-let startX = 0;
-
-document.getElementById("flipbook").addEventListener("touchstart", e => {
-    startX = e.touches[0].clientX;
-});
-
-document.getElementById("flipbook").addEventListener("touchend", e => {
-    let endX = e.changedTouches[0].clientX;
-
-    if (startX - endX > 40) nextPage();
-    if (endX - startX > 40) prevPage();
-});
+  <script src="script.js"></script>
+</body>
+</html>
