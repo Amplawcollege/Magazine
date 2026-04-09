@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>JURIS Flip Magazine</title>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- jQuery FIRST -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+
+<!-- Turn.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+
+</head>
+<body>
+
+<h1>📘 JURIS E-Magazine</h1>
+
+<div class="controls">
+  <button onclick="prevPage()">⬅ Prev</button>
+  <span id="page-num">Page 1</span>
+  <button onclick="nextPage()">Next ➡</button>
+  <button onclick="zoomIn()">🔍 +</button>
+  <button onclick="zoomOut()">🔍 -</button>
+  <button onclick="goFullscreen()">⛶ Fullscreen</button>
+  <a id="downloadBtn" target="_blank">⬇ Download</a>
+</div>
+
+<div id="flipbook"></div>
+
+<audio id="flipSound" src="flip.mp3"></audio>
+
+<script src="script.js"></script>
+
+</body>
+</html>
