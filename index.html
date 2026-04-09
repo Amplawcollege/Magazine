@@ -1,233 +1,68 @@
-/* ─── RESET & BASE ─────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JURIS E-Magazine — AMPLC</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 
-:root {
-  --bg:        #0f0f0f;
-  --surface:   #1a1a1a;
-  --border:    #2e2e2e;
-  --gold:      #c9952a;
-  --gold-soft: #e8b84b;
-  --text:      #f0ece3;
-  --muted:     #888580;
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'DM Sans', Arial, sans-serif;
-}
+  <!-- jQuery FIRST -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <!-- Turn.js (pinned version) -->
+  <script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
+</head>
+<body>
 
-html, body {
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.6;
-}
+  <header>
+    <div class="logo">
+      <span class="logo-amp">AMPLC</span>
+      <span class="logo-sep">|</span>
+      <span class="logo-juris">JURIS</span>
+    </div>
+    <p class="tagline">Legal Magazine &mdash; Vol. 1</p>
+  </header>
 
-/* ─── HEADER ───────────────────────────────────────────── */
-header {
-  text-align: center;
-  padding: 28px 16px 12px;
-  border-bottom: 0.5px solid var(--border);
-}
+  <div class="controls">
+    <button onclick="prevPage()" aria-label="Previous page">&#8592; Prev</button>
+    <span id="page-num" class="page-indicator">Page 1</span>
+    <button onclick="nextPage()" aria-label="Next page">Next &#8594;</button>
+    <span class="divider"></span>
+    <button onclick="zoomOut()" aria-label="Zoom out">&#8722; Zoom</button>
+    <button onclick="zoomIn()" aria-label="Zoom in">&#43; Zoom</button>
+    <button onclick="goFullscreen()" aria-label="Fullscreen">&#9974; Full</button>
+    <a id="downloadBtn" href="magazine.pdf" download="JURIS-Vol1.pdf" aria-label="Download PDF">&#8595; Download</a>
+  </div>
 
-.logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-size: 28px;
-  letter-spacing: 0.04em;
-}
+  <!-- Loading state -->
+  <div id="loadingMsg">
+    <div class="spinner"></div>
+    <p>Loading magazine&hellip;</p>
+  </div>
 
-.logo-amp  { color: var(--muted); }
-.logo-sep  { color: var(--border); }
-.logo-juris {
-  color: var(--gold);
-  letter-spacing: 0.12em;
-}
+  <!-- Error state -->
+  <div id="errorMsg" style="display:none;">
+    <p>&#9888; Could not load the magazine. Please check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
 
-.tagline {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-top: 6px;
-}
+  <!-- Rotate message (portrait mobile) -->
+  <div id="rotateMsg" aria-live="polite">
+    <div class="rotate-inner">
+      <div class="rotate-icon">&#8635;</div>
+      <p>Rotate to landscape for the best experience</p>
+    </div>
+  </div>
 
-/* ─── CONTROLS ─────────────────────────────────────────── */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 14px 16px;
-  background: var(--surface);
-  border-bottom: 0.5px solid var(--border);
-}
+  <main>
+    <div id="flipbook"></div>
+  </main>
 
-button, .controls a {
-  font-family: var(--font-body);
-  font-size: 13px;
-  padding: 7px 14px;
-  border: 0.5px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  border-radius: 4px;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  white-space: nowrap;
-}
+  <audio id="flipSound" src="flip.mp3" preload="auto"></audio>
 
-button:hover, .controls a:hover {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: #0f0f0f;
-}
-
-button:active {
-  transform: scale(0.97);
-}
-
-.page-indicator {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 0 4px;
-  min-width: 80px;
-  text-align: center;
-}
-
-.divider {
-  width: 0.5px;
-  height: 20px;
-  background: var(--border);
-  display: inline-block;
-  margin: 0 4px;
-}
-
-/* ─── MAIN / FLIPBOOK AREA ─────────────────────────────── */
-main {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 32px 16px 48px;
-  min-height: calc(100vh - 180px);
-}
-
-#flipbook {
-  width: 100%;
-  max-width: 1000px;
-  height: 650px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
-}
-
-.page {
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.page canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-/* ─── LOADING STATE ────────────────────────────────────── */
-#loadingMsg {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 60px 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── ERROR STATE ──────────────────────────────────────── */
-#errorMsg {
-  text-align: center;
-  padding: 48px 16px;
-  color: #c0694a;
-}
-
-#errorMsg p { margin-bottom: 16px; font-size: 14px; }
-#errorMsg button {
-  background: #c0694a;
-  border-color: #c0694a;
-  color: white;
-}
-
-/* ─── ROTATE MESSAGE ───────────────────────────────────── */
-#rotateMsg {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 10, 10, 0.97);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 32px;
-}
-
-.rotate-inner { max-width: 280px; }
-
-.rotate-icon {
-  font-size: 40px;
-  margin-bottom: 16px;
-  color: var(--gold);
-  animation: rock 1.4s ease-in-out infinite;
-}
-
-@keyframes rock {
-  0%, 100% { transform: rotate(-20deg); }
-  50%       { transform: rotate(20deg); }
-}
-
-#rotateMsg p {
-  font-size: 16px;
-  color: var(--text);
-  line-height: 1.5;
-}
-
-/* ─── RESPONSIVE ───────────────────────────────────────── */
-@media (max-width: 767px) {
-  .logo { font-size: 22px; }
-
-  .controls { gap: 4px; padding: 10px 8px; }
-
-  button, .controls a {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  .divider { display: none; }
-
-  #flipbook {
-    height: 480px;
-    max-width: 100%;
-  }
-
-  main { padding: 16px 8px 32px; }
-}
-
-@media (max-width: 400px) {
-  #flipbook { height: 380px; }
-}
-
-/* ─── FULLSCREEN ───────────────────────────────────────── */
-#flipbook:-webkit-full-screen { width: 100vw; height: 100vh; max-width: none; }
-#flipbook:-moz-full-screen    { width: 100vw; height: 100vh; max-width: none; }
-#flipbook:fullscreen           { width: 100vw; height: 100vh; max-width: none; }
+  <script src="script.js"></script>
+</body>
+</html>
